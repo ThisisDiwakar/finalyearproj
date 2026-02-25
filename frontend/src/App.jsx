@@ -6,6 +6,8 @@ import Home from './components/Home/Home';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Dashboard from './components/Dashboard/Dashboard';
+import AdminDashboard from './components/Admin/AdminDashboard';
+import AdminDashboardDebug from './components/Admin/AdminDashboardDebug';
 import ProjectSubmission from './components/Project/ProjectSubmission';
 import ProjectList from './components/Project/ProjectList';
 
@@ -26,6 +28,33 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Admin-only Route wrapper
+const AdminRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        height: '100vh', flexDirection: 'column', gap: '16px'
+      }}>
+        <div className="spinner large"></div>
+        <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 };
 
 // Guest Route (redirect to dashboard if already logged in)
@@ -70,6 +99,22 @@ const App = () => {
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/debug"
+          element={
+            <AdminRoute>
+              <AdminDashboardDebug />
+            </AdminRoute>
           }
         />
         <Route

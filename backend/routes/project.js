@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const Project = require('../models/Project');
 const { uploadToIPFS } = require('../utils/ipfs');
+const { autoSyncToIPFS } = require('../services/ipfsSync');
 
 const router = express.Router();
 
@@ -156,6 +157,10 @@ router.post(
 
       // Populate submittedBy for response
       await project.populate('submittedBy', 'name email role organization');
+
+      // Auto-sync to IPFS after new project submission
+      console.log('🔄 Auto-syncing new project to IPFS...');
+      autoSyncToIPFS().catch(err => console.error('Auto-sync failed:', err));
 
       res.status(201).json({
         success: true,
@@ -318,6 +323,10 @@ router.put('/:id', auth, upload.array('photos', 5), async (req, res) => {
 
     await project.save();
     await project.populate('submittedBy', 'name email role');
+
+    // Auto-sync to IPFS after project update
+    console.log('🔄 Auto-syncing updated project to IPFS...');
+    autoSyncToIPFS().catch(err => console.error('Auto-sync failed:', err));
 
     res.json({
       success: true,

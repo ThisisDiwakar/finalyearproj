@@ -1,9 +1,45 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 
 const router = express.Router();
+
+// Configure multer for ID proof uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/id-proofs';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'id-proof-' + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only .jpg, .jpeg, and .png files are allowed'));
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: fileFilter,
+});
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -15,6 +51,7 @@ const generateToken = (userId) => {
 // ─────────────────────────────────────────────
 router.post(
   '/register',
+  upload.single('idProof'),
   [
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Valid email is required'),
@@ -25,14 +62,26 @@ router.post(
       .withMessage('Phone must be 10 digits'),
     body('role')
       .optional()
-      .isIn(['community', 'ngo', 'panchayat'])
+      .isIn(['community', 'ngo', 'panchayat', 'admin'])
       .withMessage('Invalid role'),
+    body('employeeId')
+      .if(body('role').equals('admin'))
+      .matches(/^[0-9]{8,12}$/)
+      .withMessage('Employee ID must be 8-12 digits'),
+    body('governmentAgency')
+      .if(body('role').equals('admin'))
+      .notEmpty()
+      .withMessage('Government agency is required for admin role'),
   ],
   async (req, res) => {
     try {
       // Validate input
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        // Clean up uploaded file if validation fails
+        if (req.file) {
+          fs.unlinkSync(req.file.path);
+        }
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -40,19 +89,42 @@ router.post(
         });
       }
 
-      const { name, email, password, phone, role, organization, location } = req.body;
+      const { name, email, password, phone, role, organization, location, employeeId, governmentAgency } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
+        // Clean up uploaded file
+        if (req.file) {
+          fs.unlinkSync(req.file.path);
+        }
         return res.status(400).json({
           success: false,
           message: 'User with this email already exists',
         });
       }
 
-      // Create user
-      const user = await User.create({
+      // Validate admin-specific requirements
+      if (role === 'admin') {
+        if (!employeeId || !governmentAgency) {
+          if (req.file) {
+            fs.unlinkSync(req.file.path);
+          }
+          return res.status(400).json({
+            success: false,
+            message: 'Employee ID and Government Agency are required for admin role',
+          });
+        }
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            message: 'ID proof upload is required for admin role',
+          });
+        }
+      }
+
+      // Prepare user data
+      const userData = {
         name,
         email,
         password,
@@ -60,7 +132,23 @@ router.post(
         role: role || 'community',
         organization,
         location,
-      });
+      };
+
+      // Add admin-specific data
+      if (role === 'admin' && req.file) {
+        userData.adminDetails = {
+          governmentAgency,
+          employeeId,
+          idProof: {
+            filename: req.file.filename,
+            path: req.file.path,
+            uploadedAt: new Date(),
+          },
+        };
+      }
+
+      // Create user
+      const user = await User.create(userData);
 
       // Generate token
       const token = generateToken(user._id);
@@ -74,6 +162,10 @@ router.post(
         },
       });
     } catch (error) {
+      // Clean up uploaded file on error
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
       console.error('Registration Error:', error);
       res.status(500).json({
         success: false,
