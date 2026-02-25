@@ -1,3 +1,6 @@
 node_modules/
 .env
 uploads/
+
+# IPFS snapshot data (keep directory, ignore snapshot files)
+data/latest-snapshot.json

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { FiPlus, FiTrendingUp, FiMapPin, FiCheckCircle, FiClock, FiList } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { projectAPI, offlineQueue } from '../../services/api';
@@ -8,6 +8,11 @@ import './Dashboard.css';
 
 const Dashboard = () => {
   const { user } = useAuth();
+
+  // Redirect admin users to admin dashboard
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
   const [stats, setStats] = useState({
     total: 0,
     submitted: 0,

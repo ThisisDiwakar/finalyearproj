@@ -17,8 +17,8 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Don't show navbar on home page or when not authenticated
-  if (!isAuthenticated) return null;
+  // Don't show navbar on home page, when not authenticated, or for admin users
+  if (!isAuthenticated || user?.role === 'admin') return null;
 
   return (
     <nav className="navbar">
@@ -38,6 +38,15 @@ const Navbar = () => {
           >
             <FiHome /> Dashboard
           </Link>
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin"
+              className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+              onClick={() => setMenuOpen(false)}
+            >
+              <FiUser /> Admin Panel
+            </Link>
+          )}
           <Link
             to="/submit"
             className={`nav-link ${isActive('/submit') ? 'active' : ''}`}

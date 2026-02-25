@@ -42,7 +42,16 @@ api.interceptors.response.use(
 // AUTH API
 // ═══════════════════════════════════════════
 export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
+  register: (data) => {
+    // Check if data is FormData (for admin role with file upload)
+    if (data instanceof FormData) {
+      return api.post('/auth/register', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    // Regular JSON data for other roles
+    return api.post('/auth/register', data);
+  },
   login: (data) => api.post('/auth/login', data),
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),

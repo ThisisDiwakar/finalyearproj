@@ -48,6 +48,32 @@ const userSchema = new mongoose.Schema(
       registrationNumber: { type: String, trim: true },
     },
 
+    // Admin-specific fields
+    adminDetails: {
+      governmentAgency: {
+        type: String,
+        enum: [
+          'National Centre for Coastal Research (NCCR)',
+          'Forest Survey of India (FSI)',
+          'State Coastal Zone Management Authority',
+          'Ministry of Environment, Forest & Climate Change',
+          'Other Government Agency',
+        ],
+      },
+      employeeId: {
+        type: String,
+        trim: true,
+        minlength: [8, 'Employee ID must be 8-12 digits'],
+        maxlength: [12, 'Employee ID must be 8-12 digits'],
+        match: [/^[0-9]{8,12}$/, 'Employee ID must be 8-12 digits'],
+      },
+      idProof: {
+        filename: { type: String },
+        path: { type: String },
+        uploadedAt: { type: Date },
+      },
+    },
+
     // Location
     location: {
       state: { type: String, trim: true },

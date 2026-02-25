@@ -26,12 +26,21 @@ const Register = () => {
     state: '',
     district: '',
     village: '',
+    // Admin-specific fields
+    governmentAgency: '',
+    employeeId: '',
+    idProof: null,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, files } = e.target;
+    if (name === 'idProof' && files) {
+      setFormData({ ...formData, idProof: files[0] });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const validateStep1 = () => {
@@ -49,27 +58,68 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate admin-specific fields
+    if (formData.role === 'admin') {
+      if (!formData.governmentAgency) {
+        toast.error('Government agency is required for admin role');
+        return;
+      }
+      if (!formData.employeeId || !/^[0-9]{8,12}$/.test(formData.employeeId)) {
+        toast.error('Employee ID must be 8-12 digits');
+        return;
+      }
+      if (!formData.idProof) {
+        toast.error('ID proof upload is required for admin role');
+        return;
+      }
+      // Validate file size and type
+      if (formData.idProof.size > 5 * 1024 * 1024) {
+        toast.error('ID proof file size must be less than 5MB');
+        return;
+      }
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(formData.idProof.type)) {
+        toast.error('ID proof must be a JPG or PNG image');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        phone: formData.phone || undefined,
-        role: formData.role,
-        organization: {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('role', formData.role);
+
+      if (formData.phone) formDataToSend.append('phone', formData.phone);
+
+      // Add organization data
+      if (formData.organizationName || formData.organizationType || formData.registrationNumber) {
+        formDataToSend.append('organization', JSON.stringify({
           name: formData.organizationName || undefined,
           type: formData.organizationType,
           registrationNumber: formData.registrationNumber || undefined,
-        },
-        location: {
+        }));
+      }
+
+      // Add location data
+      if (formData.state || formData.district || formData.village) {
+        formDataToSend.append('location', JSON.stringify({
           state: formData.state || undefined,
           district: formData.district || undefined,
           village: formData.village || undefined,
-        },
-      };
+        }));
+      }
 
-      const result = await register(payload);
+      // Add admin-specific data
+      if (formData.role === 'admin') {
+        formDataToSend.append('governmentAgency', formData.governmentAgency);
+        formDataToSend.append('employeeId', formData.employeeId);
+        formDataToSend.append('idProof', formData.idProof);
+      }
+
+      const result = await register(formDataToSend);
       toast.success(result.message || 'Registration successful!');
       navigate('/dashboard');
     } catch (error) {
@@ -84,6 +134,7 @@ const Register = () => {
     { value: 'community', label: '👥 Community Member', desc: 'Local fisher / farmer / resident' },
     { value: 'ngo', label: '🏢 NGO', desc: 'Non-governmental organization' },
     { value: 'panchayat', label: '🏛️ Coastal Panchayat', desc: 'Local governing body' },
+    { value: 'admin', label: '🔐 Admin', desc: 'Government agency official' },
   ];
 
   return (
@@ -261,6 +312,81 @@ const Register = () => {
                       />
                     </div>
                   </div>
+                )}
+
+                {formData.role === 'admin' && (
+                  <>
+                    <div className="input-group">
+                      <label htmlFor="governmentAgency">Government Agency *</label>
+                      <div className="input-wrapper">
+                        <FiBriefcase className="input-icon" />
+                        <select
+                          id="governmentAgency"
+                          name="governmentAgency"
+                          value={formData.governmentAgency}
+                          onChange={handleChange}
+                          required
+                          className="select-input"
+                        >
+                          <option value="">Select Government Agency</option>
+                          <option value="National Centre for Coastal Research (NCCR)">
+                            National Centre for Coastal Research (NCCR)
+                          </option>
+                          <option value="Forest Survey of India (FSI)">
+                            Forest Survey of India (FSI)
+                          </option>
+                          <option value="State Coastal Zone Management Authority">
+                            State Coastal Zone Management Authority
+                          </option>
+                          <option value="Ministry of Environment, Forest & Climate Change">
+                            Ministry of Environment, Forest & Climate Change
+                          </option>
+                          <option value="Other Government Agency">
+                            Other Government Agency
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor="employeeId">Official Employee ID *</label>
+                      <div className="input-wrapper">
+                        <FiUser className="input-icon" />
+                        <input
+                          type="text"
+                          id="employeeId"
+                          name="employeeId"
+                          placeholder="8-12 digit employee ID"
+                          value={formData.employeeId}
+                          onChange={handleChange}
+                          required
+                          pattern="[0-9]{8,12}"
+                          maxLength={12}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor="idProof">Upload ID Proof (Government ID) *</label>
+                      <div className="file-upload-wrapper">
+                        <input
+                          type="file"
+                          id="idProof"
+                          name="idProof"
+                          accept=".jpg,.jpeg,.png"
+                          onChange={handleChange}
+                          required
+                          className="file-input"
+                        />
+                        <label htmlFor="idProof" className="file-label">
+                          <span className="file-icon">📎</span>
+                          <span className="file-text">
+                            {formData.idProof ? formData.idProof.name : 'Choose file (JPG/PNG, max 5MB)'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 <div className="input-row">
