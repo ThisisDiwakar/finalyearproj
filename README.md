@@ -51,7 +51,7 @@ A Blockchain-powered registry for blue carbon ecosystem restoration with Monitor
 cd backend
 npm install
 # Edit .env file with your MongoDB URI and (optionally) Pinata keys
-npm run dev
+npm start
 ```
 
 ### 2. Frontend Setup
