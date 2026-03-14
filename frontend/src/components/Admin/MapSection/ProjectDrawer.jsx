@@ -204,9 +204,7 @@ const ProjectDrawer = ({ project, onClose, onActionComplete }) => {
             return (
               <div className="drawer-section ai-summary-section">
                 <div className="section-label">🤖 AI Plant Analysis</div>
-                {ai.isMock && (
-                  <div className="ai-mock-notice">⚡ Estimated — add GEMINI_API_KEY for live AI</div>
-                )}
+
                 <div className="ai-summary-header">
                   <div>
                     <div className="ai-plant-name">{ai.plants.join(', ') || 'Vegetation'}</div>

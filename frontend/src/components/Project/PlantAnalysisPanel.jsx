@@ -95,9 +95,7 @@ const PlantAnalysisPanel = ({ photo, projectName }) => {
       {/* Results */}
       {state === 'done' && result && (
         <div className="analysis-result fade-in">
-          {result.mock && (
-            <div className="mock-notice">⚡ Estimated data — add GEMINI_API_KEY for live AI analysis</div>
-          )}
+
 
           <div className="result-header">
             <div>
