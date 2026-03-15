@@ -8,6 +8,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/project');
 const adminRoutes = require('./routes/admin');
+const analyzeRoutes = require('./routes/analyze');
 
 const app = express();
 
@@ -18,8 +19,17 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // ── Middleware ──
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(o => origin.startsWith(o))) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -32,6 +42,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
