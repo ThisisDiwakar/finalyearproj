@@ -51,7 +51,7 @@ const PlantAnalysisPanel = ({ photo, projectName }) => {
         { imageBase64: base64, mimeType },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setResult(res.data.data);
+      setResult({ ...res.data.data, isMock: res.data.mock });
       setState('done');
     } catch (err) {
       setError(err.response?.data?.message || 'Analysis failed. Please try again.');
@@ -96,6 +96,11 @@ const PlantAnalysisPanel = ({ photo, projectName }) => {
       {state === 'done' && result && (
         <div className="analysis-result fade-in">
 
+          {result.isMock && (
+            <div className="mock-notice">
+              ⚠️ AI quota exceeded — showing estimated data. Results vary by species type.
+            </div>
+          )}
 
           <div className="result-header">
             <div>

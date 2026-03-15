@@ -220,3 +220,15 @@
   color: #00bfa5;
   border-color: #00bfa5;
 }
+
+/* Mock/estimated data notice */
+.mock-notice {
+  background: rgba(255, 167, 38, 0.12);
+  border: 1px solid rgba(255, 167, 38, 0.35);
+  border-radius: 6px;
+  color: #ffa726;
+  font-size: 0.75rem;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
